@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CABG术后心脏康复决策辅助工具</title>
+<style>
+  /* 基础重置与字体 */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: "微软雅黑", "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: #fdf6f0;
+    color: #454545;
+    margin: 0;
+    padding: 0 15px 40px;
+    display: flex;
+    justify-content: center;
+  }
+  #app {
+    max-width: 880px;
+    width: 100%;
+  }
+  h1 {
+    text-align: center;
+    font-weight: 700;
+    font-size: 2.2rem;
+    margin: 28px 0 20px 0;
+    color: #2c3e50;
+    letter-spacing: 1px;
+    user-select: none;
+  }
+  #container {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 18px rgba(101, 101, 101, 0.12);
+    padding: 30px 35px 40px;
+    min-height: 280px;
+    line-height: 1.65;
+    font-size: 1.1rem;
+    user-select: none;
+  }
+  #container p {
+    font-weight: 600;
+    font-size: 1.3rem;
+    margin-bottom: 18px;
+    color: #31708e;
+  }
+  button {
+    cursor: pointer;
+    user-select: none;
+    background: linear-gradient(135deg, #74b49b 0%, #4a8c78 100%);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 13px 26px;
+    margin: 10px 14px 10px 0;
+    border-radius: 30px;
+    border: none;
+    box-shadow: 0 5px 12px rgba(74, 140, 120, 0.45);
+    transition: all 0.25s ease-in-out;
+    min-width: 120px;
+  }
+  button:hover, button:focus {
+    background: linear-gradient(135deg, #449775 0%, #316850 100%);
+    box-shadow: 0 7px 18px rgba(31, 95, 68, 0.7);
+    outline: none;
+  }
+  button:active {
+    transform: translateY(1.5px);
+  }
+  input[type=number] {
+    font-size: 1.12rem;
+    padding: 10px 14px;
+    width: 170px;
+    border-radius: 14px;
+    border: 1.8px solid #81b29a;
+    margin-right: 16px;
+    transition: border-color 0.3s ease;
+  }
+  input[type=number]:focus {
+    border-color: #588157;
+    outline: none;
+  }
+  pre {
+    background-color: #f4f1ea;
+    padding: 20px 22px;
+    border-radius: 14px;
+    font-size: 1.05rem;
+    white-space: pre-wrap;
+    color: #5a5a5a;
+    line-height: 1.5;
+    user-select: text;
+    max-height: 380px;
+    overflow-y: auto;
+    margin-top: 0;
+  }
+  #backBtn {
+    margin-top: 28px;
+    background: #f29e4c;
+    box-shadow: 0 5px 13px rgba(242, 158, 76, 0.8);
+    min-width: 110px;
+    border-radius: 26px;
+  }
+  #backBtn:hover, #backBtn:focus {
+    background: #c5711a;
+    box-shadow: 0 6px 20px rgba(199, 113, 26, 1);
+  }
+  /* 响应式微调 */
+  @media(max-width: 520px) {
+    #container {
+      padding: 25px 20px 35px;
+    }
+    button, #backBtn {
+      width: 100%;
+      max-width: none;
+      margin: 8px 0 8px 0;
+      font-size: 1.05rem;
+      padding: 14px 0;
+    }
+    input[type=number] {
+      width: 100%;
+      margin-bottom: 16px;
+      margin-right: 0;
+      border-radius: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="app" role="main" aria-label="CABG术后心脏康复决策辅助工具">
+    <h1>CABG术后心脏康复决策辅助工具</h1>
+    <div id="container" tabindex="0" aria-live="polite" aria-atomic="true">正在加载数据...</div>
+    <button id="backBtn" aria-label="返回上一步" style="display:none;">← 返回上一步</button>
+  </div>
+
+<script>
+  (function(){
+    // 详细数据，完全对标您每张流程图的标准文本，且支持多行排版！
+    const data = {
+      home: {
+        question: '请选择决策内容',
+        options: [
+          { label: '康复运动', value: 'rehabExercise' },
+          { label: '饮食管理', value: 'dietManagement' },
+          { label: '药物管理', value: 'medicationManagement' },
+          { label: '心理支持', value: 'psychologicalSupport' },
+          { label: '戒烟', value: 'smokingCessation' },
+        ]
+      },
+
+      rehabExercise: {
+        question: '术后时间<2周？',
+        options: [
+          {
+            label: '是',
+            next: {
+              question: '请输入术后时间（天数）',
+              inputType: 'number',
+              branches: [
+                {
+                  range: [1,3],
+                  question: '血压、心率是否稳定？有无胸痛、胸闷？',
+                  options: [
+                    {label:'正常', output: `输出1:\n床上上肢柔运动，腹式呼吸，上肢活动/主动活动，床上坐起2～10min/次。\n\n每日3-5次。`},
+                    {label:'不正常', output: `输出2:\n暂不主动运动，以呼吸训练、体位护理为主。`}
+                  ]
+                },
+                {
+                  range: [4,7],
+                  question: '能否下床站立？有无气短/胸痛？',
+                  options: [
+                    {label:'耐受', output: `输出3:\n床边站立→原地踏步→病房内步行5～10min/次，2～3次/日。`},
+                    {label:'不耐受', output: `输出4:\n继续床边坐位活动，延长活动时间。`}
+                  ]
+                },
+                {
+                  range: [8,14],
+                  question: '是否可连续步行≥50m且无不适？',
+                  options: [
+                    {label:'耐受', output: `输出5:\n维持庭走行，10～20min/次。`},
+                    {label:'气短乏力', output: `输出6:\n维持好返步行，增加缓次，缩短单次时长。`}
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            label: '否',
+            next: {
+              question: '请输入6分钟步行实验结果（米）',
+              inputType: 'number',
+              branches: [
+                {
+                  range: [0,299],
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output:
+`输出7:
+以卧床/床边活动为主，每次10分钟，每日2次，步行距离控制在100～200m内。
+可增加坐位膝部练习，仍不建议加入抗阻训练。
+每月复查6MWT，评估运动耐力变化，调整运动方案。
+
+运动方案说明:
+10:以室内慢走为主，每次10分钟，每日2次，步行距离控制100～200m内。
+可配合简单的上肢肢展运动，避免爬坡、上下楼梯，活动心率不超过100次/分。
+出现胸闷/气促可暂时停止。`
+                      },
+                      {label:'1～3个月', output:
+`输出8:
+可进行缓慢训练，每次15～20分钟，每周5天。
+逐步延长步行距离至约300m，可尝试固定踏车（无阻力）。
+每次10分钟，每周3次，避免快走和抗阻训练。`
+                      },
+                      {label:'≥3个月', output:
+`输出9:
+以快走(步速)及慢骑行为主，每次20分钟，每周5天，步行距离控制约400m。
+可尝试循加距离训练，每次10分钟，每周2次。
+活动时避免心率超过110次/分，不建议加入抗阻训练。`
+                      }
+                    ]
+                  }
+                },
+                {
+                  range: [300,449],
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output:
+`输出10:
+以卧床/床边活动为主，每次10分钟，每日2次，步行距离控制100～200m。`},
+                      {label:'1～3个月', output:
+`输出11:
+快走为主，每次15～20分钟，每周5天，逐步提升步行距离至400m。`},
+                      {label:'≥3个月', output:
+`输出12:
+快走为主，每次20～30分钟，每周5天，步行距离提升至500m。`}
+                    ]
+                  }
+                },
+                {
+                  range: [450,549],
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output:
+`输出13:
+快走/骑行为主，每次30分钟，每周5天，步行距离约400m。`},
+                      {label:'1～3个月', output:
+`输出14:
+快走训练为主，每次20～30分钟，每周5天，逐步提升训练强度。`},
+                      {label:'≥3个月', output:
+`输出15:
+快走/骑行为主，每次30分钟，每周5天，步行距离可维持在500m以上。
+常规抗阻训练（弹力带+轻型铃），每次15分钟，每周2次。
+上下肢跨训练，可加入平衡训练（如太极基础动作），提升日常活动能力。`}
+                    ]
+                  }
+                },
+                {
+                  range: [550,9999],
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output:
+`输出16:
+快走为主，每次20～30分钟，每周5天，步行距离控制在550m内。
+不建议加入抗阻训练，避开心率超过110次/分，活动时若出现疲劳持续1小时，需降低运动强度。`},
+                      {label:'1～3个月', output:
+`输出17:
+快走/慢骑行为主，每次30分钟，每周5天，逐步提升步行速度。
+可逐步加抗阻训练（弹力带+轻型铃），每次15分钟，每周2～3次。
+可尝试太极/瑜伽等相关训练，改善身体协调。`},
+                      {label:'≥3个月', output:
+`输出18:
+快走/骑行（低强度）为主，每次30～45分钟，每周5天。
+常规抗阻训练（上肢+下肢），每次20分钟，每周2～3次。
+可逐步增加阻力，加入轻度球类运动（如乒乓球），避免竞技性运动，维持长期健康生活方式。`}
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+
+      dietManagement: {
+        question: '是否有慢性疾病？',
+        options: [
+          {
+            label: '否',
+            next: {
+              question: '请输入时间周期',
+              options: [
+                {label:'<1个月', output:
+`输出19:
+流质→半流质→软食过渡。如粥、烂面条、蒸蛋、鱼肉泥。
+营养重点：
+优质蛋白质优先，每日蛋白质1.0-1.2g/kg体重。
+禁忌：避免刺激、辛辣、产气食物（豆类、碳酸饮料）、饮酒。`},
+                {label:'1～3个月', output:
+`输出20:
+恢复普通饮食。保证全谷物、蔬菜、优质蛋白摄入。
+营养重点：每日蔬菜300-500g，全谷物占主食1/3以上，蛋白质1.0-1.2g/kg。
+禁忌：避免油炸、烧烤、高糖零食，减少精制糖摄入。`},
+                {label:'≥3个月', output:
+`输出21:
+参考出院饮食。以全谷物、蔬菜、水果、鱼肉、橄榄油为主。
+营养重点：每周吃2次以上鱼类，坚果每周一小把，控制红肉摄入。
+禁忌：戒烟限酒，避免高盐、高脂、腌制及膨化食品。`}
+              ]
+            }
+          },
+          {
+            label: '是',
+            next: {
+              question: '请选择合并疾病',
+              options: [
+                {
+                  label: '高血压',
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output:
+`输出22:
+食盐<5g/天，尽量不食用咸烟、腌制食品，营养重点：增加钾摄入（香椿、菠菜、土豆），促进排钠。
+食物形态：半流质为主，避免浓汤、胰制品。禁忌高盐饮食。`},
+                      {label:'1～3个月', output:'输出23: 食盐＜5g/天，减少调味品使用。每日优先摄入500g蔬菜及200-350g水果，避免加工肉类。'},
+                      {label:'≥3个月', output:'输出24: 继续低盐膳食，控制血压，保证营养均衡。'}
+                    ]
+                  }
+                },
+                {
+                  label: '糖尿病',
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output: `输出25:
+注重选用低GI主食，避免血糖剧烈波动。
+合理进食安排，限制甜饮料。`},
+                      {label:'1～3个月', output: `输出26:
+全谷物代替精制主食，控制每日蛋白质25-50g。
+营养重点：蛋白质1.0-1.2g/kg体重，优先摄入蔬菜水果。`},
+                      {label:'≥3个月', output: `输出27:
+注重糖脂控制，严控血糖，定期监测血糖及营养状况。`}
+                    ]
+                  }
+                },
+                {
+                  label: '高脂血症',
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output: `输出28:
+减少脂肪摄入，优先选择植物油，避免动物脂肪和油炸食物。`},
+                      {label:'1～3个月', output: `输出29:
+继续限制脂肪摄入，增加膳食纤维，避免反式脂肪酸。`},
+                      {label:'≥3个月', output: `输出30:
+坚持低脂饮食习惯，定期检测血脂，调整膳食结构。`}
+                    ]
+                  }
+                },
+                {
+                  label: '多病种',
+                  next: {
+                    question: '请输入术后时间',
+                    options: [
+                      {label:'<1个月', output: `输出31:
+同時兼顾低盐、低脂、控糖三大原则饮食，避免高盐高脂食物。`},
+                      {label:'1～3个月', output: `输出32:
+以地中海饮食为基础，结合DASH饮食，构建个体化营养方案。`},
+                      {label:'≥3个月', output: `输出33:
+继续精准营养管理，定期营养评估随访，协助控制多重慢病。`}
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+
+      medicationManagement: {
+        question: '是否使用阿司匹林？',
+        options:[
+          {label:'是', output:`输出34:
+剂量: 75 ~100mg，每日1次，早餐后服用。
+监测: 牙龈出血、皮肤瘀斑、黑便，胃部不适。
+禁忌: 不可与NSAIDs、抗凝药同用。
+适用: 术后全程长期一级预防。`},
+          {label:'否', next:{
+            question:'是否使用氯吡格雷？',
+            options:[
+              {label:'是', output:`输出35:
+剂量: 75mg，每日1次。
+监测: 出血倾向、皮疹、腹泻。
+禁忌: 过敏、胃溃疡耐受差患者。`},
+              {label:'否', next:{
+                question:'是否使用他汀类药物？',
+                options:[
+                  {label:'是', output:`输出36:
+服用时间: 每晚睡前服用。
+监测: 肝功能、肌酸激酶、肌肉酸痛等。
+目标: LDL-C < 1.8mmol/L。`},
+                  {label:'否', next:{
+                    question:'是否使用抗血小板药+他汀类联用？',
+                    options:[
+                      {label:'是', output:`输出37:
+联合用药，监测耐药和副作用。`},
+                      {label:'否', next:{
+                        question:'是否联用降压药？',
+                        options:[
+                          {label:'是', output:`输出38:
+监测血压，调整降压药剂量。`},
+                          {label:'否', next:{
+                            question:'是否联用降糖药？',
+                            options:[
+                              {label:'是', output:`输出39:
+监测血糖、肝肾功能，调整用药方案。`},
+                              {label:'否', next:{
+                                question:'用药依从性是否良好？',
+                                options:[
+                                  {label:'是', output:`输出40:
+维持现有治疗方案，定期随访。`},
+                                  {label:'否', output:`输出41:
+加强患者用药指导，提醒遵医嘱。`}
+                                ]
+                              }}
+                            ]
+                          }}
+                        ]
+                      }}
+                    ]
+                  }}
+                ]
+              }}
+            ]
+          }}
+        ]
+      },
+
+      psychologicalSupport: {
+        question: '请输入广泛性焦虑量表评分：',
+        options:[
+          {label:'0～4分', output:
+`输出42:
+评估结果：无明显焦虑情绪。
+干预内容：常规心理支持，告知心脏康复正常进程，
+增强康复信心，鼓励主动沟通，保持规律作息与适度活动。
+监测频率：出院时、术后1个月、术后3个月常规随访评估。`},
+          {label:'5～9分', output:
+`输出43:
+评估结果：轻度焦虑。
+干预内容：非药物干预，给予深呼吸、放松训练、正念冥想指导。
+强化康复知识讲解，降低未知感与担忧，鼓励家庭陪伴支持，
+规律运动辅助改善情绪。
+监测频率：每2周随访评估1次。`},
+          {label:'10～14分', output:
+`输出44:
+评估结果：中度焦虑。
+干预内容：强化心理支持，一对一情绪疏导、认知指导、压力管理，
+针对性解答康复顾虑，减少负性思维。
+联合家属协同支持，增加沟通频次。
+监测频率：每周随访评估1次，建议心理科门诊评估。`},
+          {label:'≥15分', output:
+`输出45:
+评估结果：重度焦虑。
+干预内容：紧急心理干预，立即启动精神心理科专科会诊，
+必要时遵医嘱给予抗焦虑药物治疗，密切监测情绪、睡眠、
+胸闷心慌等躯体化症状，避免情绪应激影响心脏术后恢复。
+监测频率：每周2次重点随访。`}
+        ]
+      },
+
+      smokingCessation: {
+        question: '是否有吸烟史？',
+        options:[
+          {label:'是', next:{
+            question: '是否戒烟？',
+            options:[
+              {label:'是', output:
+`输出47:
+干预内容：
+防复吸干预，强化戒烟获益，提高自我效能，
+指导识别复吸高危场景（压力、饮酒、社交），
+鼓励家属监督与支持。
+监测频率：
+每1个月随访1次，警惕复吸。`},
+              {label:'否', next:{
+                question: '戒烟意愿如何？',
+                options:[
+                  {label:'低', output:
+`输出48:
+干预内容：
+动机激发干预，讲解CABG术后吸烟对血管、
+伤口、预后的危害，提供简短戒烟建议，
+不强制定计划，提升认知，增强后续戒烟意愿。
+监测频率：
+每月宣教1次，随访记录吸烟量。`},
+                  {label:'中', output:
+`输出49:
+干预内容：
+结构化戒烟指导，协助制定个体化戒烟计划
+（设定戒烟日、逐步减量），提供行为干预：
+远离诱因、规律作息、运动替代。
+建议家属共同参与，提供支持与监督。
+监测频率：
+每2周随访1次。`},
+                  {label:'高', output:
+`输出50:
+干预内容：
+强化戒烟方案，立即启动戒烟计划，
+明确戒烟日，行为干预+心理支持+应对戒断反应指导，
+必要时建议专科评估，遵医嘱使用戒烟药物。
+监测频率：
+每周随访1次，直至稳定戒烟。`}
+                ]
+              }}
+            ]
+          }},
+          {label:'否', output:
+`输出46:
+健康宣教与维持指导，
+告知二手烟、三手烟危害，避免环境暴露，
+保持健康生活方式，无需戒烟干预。
+监测频率：
+出院时、术后1个月、术后3个月常规随访。`
+          }
+        ]
+      }
+    };
+
+    const container = document.getElementById('container');
+    const backBtn = document.getElementById('backBtn');
+
+    // 状态栈，保存上一步节点，便于返回
+    let stateStack = [];
+
+    // 渲染节点
+    function renderNode(node) {
+      container.innerHTML = '';
+      backBtn.style.display = stateStack.length > 0 ? 'inline-block' : 'none';
+      container.setAttribute('tabindex', '0');
+      container.focus();
+
+      if(node.question) {
+        const p = document.createElement('p');
+        p.textContent = node.question;
+        container.appendChild(p);
+      }
+
+      if (node.output) {
+        const pre = document.createElement('pre');
+        pre.textContent = node.output;
+        container.appendChild(pre);
+        return;
+      }
+
+      if (node.options && node.options.length > 0) {
+        node.options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.textContent = opt.label;
+          btn.onclick = () => {
+            optionHandler(opt, node);
+          };
+          container.appendChild(btn);
+        });
+        return;
+      }
+
+      if (node.inputType === 'number') {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = 'numInput';
+        input.autofocus = true;
+        container.appendChild(input);
+
+        const submitBtn = document.createElement('button');
+        submitBtn.textContent = '提交';
+        submitBtn.onclick = () => inputHandler(input.value, node);
+        container.appendChild(submitBtn);
+        return;
+      }
+    }
+
+    // 处理选项点击
+    function optionHandler(option, currentNode) {
+      if(option.output) {
+        stateStack.push(currentNode);
+        renderNode({output: option.output});
+      } else if(option.next) {
+        stateStack.push(currentNode);
+        renderNode(option.next);
+      } else if(option.value) {
+        // 从首页点击模块进入对应流程
+        stateStack.push(data.home);
+        renderNode(data[option.value]);
+      }
+    }
+
+    // 处理数字输入
+    function inputHandler(value, currentNode) {
+      const val = Number(value);
+      if (!value || isNaN(val)) {
+        alert('请输入有效数字');
+        return;
+      }
+      let matchedBranch = null;
+      for(const branch of (currentNode.branches || [])) {
+        if(val >= branch.range[0] && val <= branch.range[1]){
+          matchedBranch = branch;
+          break;
+        }
+      }
+      if(!matchedBranch){
+        alert('输入数值不在指定范围，请重新输入');
+        return;
+      }
+      stateStack.push(currentNode);
+      if(matchedBranch.output){
+        renderNode({output: matchedBranch.output});
+      } else {
+        renderNode(matchedBranch);
+      }
+    }
+
+    // 返回上一步
+    backBtn.onclick = () => {
+      if(stateStack.length === 0) return;
+      const prev = stateStack.pop();
+      renderNode(prev);
+    }
+
+    // 初始化
+    renderNode(data.home);
+
+  })();
+</script>
+
+</body>
+</html>
